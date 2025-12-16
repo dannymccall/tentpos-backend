@@ -1,0 +1,20 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+
+export const ENV = {
+  DB_NAME: process.env.DB_NAME!,
+  DB_USER: process.env.DB_USER!,
+  DB_PASSWORD: process.env.DB_PASSWORD!,
+  DB_HOST: process.env.DB_HOST!,
+  DB_PORT: Number(process.env.DB_PORT ?? 3306),
+   TENTHUB_APP_CENTER_URL: process.env.TENTHUB_APP_CENTER_URL!,
+  TENTPOS_APP_ID: process.env.TENTPOS_APP_ID!,
+  TENTHUB_FRONTEND_URL:process.env.TENTHUB_FRONTEND_URL!,
+  REDIRECT_URL: process.env.REDIRECT_URL!,
+  TENTCREDIT_API_URL: process.env.TENTCREDIT_API_URL!,
+  APP_PROVISIONING_SECRET: process.env.APP_PROVISIONING_SECRET!,
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME!,
+CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
+CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+};

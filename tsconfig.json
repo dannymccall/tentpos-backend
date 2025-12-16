@@ -1,0 +1,28 @@
+{
+  "exclude": [
+    "./coverage",
+    "./dist",
+    "**/*.test.ts",
+    "jest.config.js",
+    "eslint.config.mjs",
+    "migrations"
+  ],
+  "ts-node": {
+    "transpileOnly": true,
+    "files": true
+  },
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "nodenext",
+    "rootDir": "./src",
+    "moduleResolution": "nodenext",
+    "checkJs": false,
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    
+  }
+}
