@@ -24,7 +24,6 @@ export async function roleDataScopeMiddleware(
 
       return next();
     }
-
     // 🛑 If there's no roleId, avoid any database lookup and deny everything
     if (!user.roleId) {
       (req as any).roleDataScope = [];
@@ -41,9 +40,53 @@ export async function roleDataScopeMiddleware(
     const roleScope = await RoleDataScope.findOne({
       where: { roleId: user.roleId, tenantId: user.tenantId },
     });
-
     (req as any).roleDataScope = roleScope?.scopes || [];
 
+    if (user.appRole === "user") {
+      (req as any).applyDataScope =
+        () =>
+        (_entity: string, baseWhere = {}) => {
+          if (_entity === "branches") {
+            const entry = ((req as any).roleDataScope || []).find(
+              (s: any) => s.entity === _entity
+            );
+            const scope = entry?.scope || "none";
+
+            switch (scope){
+              case "personal":
+              case "branch":
+                return {...baseWhere, id: user.branchId};
+              case "all":
+              case "none":
+                return {...baseWhere, tenantId: user.tenantId}
+            }
+          }
+        };
+        return next();
+    }
+
+     if (user.appRole === "user") {
+      (req as any).applyDataScope =
+        () =>
+        (_entity: string, baseWhere = {}) => {
+          if (_entity === "users") {
+            const entry = ((req as any).roleDataScope || []).find(
+              (s: any) => s.entity === _entity
+            );
+            const scope = entry?.scope || "none";
+
+            switch (scope){
+              case "personal":
+              case "branch":
+                return {...baseWhere, id: user.userId};
+              case "all":
+              case "none":
+                return {...baseWhere, tenantId: user.tenantId}
+            }
+          }
+        };
+        return next();
+    }
     (req as any).applyDataScope = (entity: string, baseWhere = {}) => {
       const entry = ((req as any).roleDataScope || []).find(
         (s: any) => s.entity === entity

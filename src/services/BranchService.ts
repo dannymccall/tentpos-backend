@@ -18,10 +18,10 @@ export class BranchService {
   public getBranches = async (
     page: number = 1,
     limit: number = 10,
-    tenantId: string,
-    search:string = ""
+    search:string = "",
+    baseWhere: any = {}
   ): Promise<PaginatedResponse<Branch> | Branch[]> => {
-    return this.branchRepo.getBranches(page, limit, tenantId,search);
+    return this.branchRepo.getBranches(page, limit,search, baseWhere);
   };
 
   public getBranch = async (id: number): Promise<Branch | null> => {

@@ -5,9 +5,11 @@ import {
   InferCreationAttributes,
   Sequelize,
   ForeignKey,
+  NonAttribute,
 } from "sequelize";
 import Product from "./Product.js";
 import { User } from "./User.js";
+import { Branch } from "./Branch.js";
 
 export default class StockAdjustment extends Model<
   InferAttributes<StockAdjustment>,
@@ -28,6 +30,9 @@ export default class StockAdjustment extends Model<
   declare userId: ForeignKey<User["id"]>;
   declare tenantId: string;
   declare createdAt?: Date;
+  declare branchStockAdjustment?: NonAttribute<Branch>;
+  declare productStockAdjustment?: NonAttribute<Product>;
+  declare userStockAdjustment?: NonAttribute<User>
 }
 
 export function initStockAdjustmentModel(sequelize: Sequelize) {

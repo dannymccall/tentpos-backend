@@ -60,16 +60,25 @@ export class ProductRoutes {
       this.controller.bulkUpload.bind(this.controller)
     );
 
-    this.router.get("/fetch-sale-products",
+    this.router.get(
+      "/fetch-sale-products",
       requireAuth,
       RequirePermission("inventory.products.view"),
       this.controller.fetchSaleProducts.bind(this.controller)
     );
 
-    this.router.get("/fetch-low-stock-products",
+    this.router.get(
+      "/fetch-low-stock-products",
       requireAuth,
       RequirePermission("inventory.products.view"),
       this.controller.fetchLowStockProducts.bind(this.controller)
+    );
+
+    this.router.get(
+      "/inventory-breakdown",
+      requireAuth,
+      RequirePermission(""),
+      this.controller.getInventoryBreakdown.bind(this.controller)
     );
   }
 }

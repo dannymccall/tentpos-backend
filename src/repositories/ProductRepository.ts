@@ -55,7 +55,10 @@ export class ProductRepository {
     // replace images
     if ("images" in data) {
       if (Array.isArray(data.images) && data.images.length) {
-        await ProductImage.destroy({ where: { productId: id }, transaction: t });
+        await ProductImage.destroy({
+          where: { productId: id },
+          transaction: t,
+        });
         const imgs = data.images.map((img: any, i: number) => ({
           productId: id,
           url: img.url ?? img,
@@ -234,7 +237,7 @@ export class ProductRepository {
     branchId,
     topLimit = 10,
     search = "",
-    categoryId = "ALL"
+    categoryId = "ALL",
   }: {
     tenantId: string;
     branchId?: number;
@@ -255,7 +258,10 @@ export class ProductRepository {
       branchWhere.branchId = branchId;
     }
     if (search) {
-      Object.assign(productWhere, buildSearchQuery(["title", "description"], search));
+      Object.assign(
+        productWhere,
+        buildSearchQuery(["title", "description"], search)
+      );
     }
     if (categoryId !== "ALL") {
       Object.assign(productWhere, { categoryId });
@@ -297,12 +303,15 @@ export class ProductRepository {
       raw: true,
     });
     const productIds = topProducts.map((p) => p.productId);
-    const mostProducts = {id: productIds, tenantId};
-    if(categoryId !== "ALL"){
-      Object.assign(mostProducts, {categoryId});
+    const mostProducts = { id: productIds, tenantId };
+    if (categoryId !== "ALL") {
+      Object.assign(mostProducts, { categoryId });
     }
-    if(search){
-      Object.assign(mostProducts, buildSearchQuery(["title", "description"], search));
+    if (search) {
+      Object.assign(
+        mostProducts,
+        buildSearchQuery(["title", "description"], search)
+      );
     }
     const mostPurchasedProducts = await Product.findAll({
       where: mostProducts,
@@ -336,54 +345,62 @@ export class ProductRepository {
   }
 
   public async fetchLowStockProducts({
-  tenantId,
-  branchId,
-  page = 1,
-  limit = 10,
-  search = "",
-  appRole = "user"
-}: {
-  tenantId: string;
-  branchId?: number;
-  appRole?: "owner" | "user";
-  page?: number;
-  limit?: number;
-  search?: string;
-}) {
-  // Base filter for tenant
-  const where: any = { tenantId };
+    tenantId,
+    branchId,
+    page = 1,
+    limit = 10,
+    search = "",
+    appRole = "user",
+  }: {
+    tenantId: string;
+    branchId?: number;
+    appRole?: "owner" | "user";
+    page?: number;
+    limit?: number;
+    search?: string;
+  }) {
+    // Base filter for tenant
+    const where: any = { tenantId };
 
-  if (appRole === "user" && branchId) {
-    where.branchId = branchId;
-  }
+    if (appRole === "user" && branchId) {
+      where.branchId = branchId;
+    }
     const searchCondition = buildSearchQuery(["title", "description"], search);
     Object.assign(where, searchCondition);
-  const offset = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-  // Include product and filter by threshold
-  const {rows, count} = await ProductBranch.findAndCountAll({
-    where,
-    include: [
-      {
-        model: Product,
-        as: "product",
-        attributes: ["id", "title", "threshold"],
-        required: true,
-        where: {
-          threshold: { [Op.gte]: sequelize.col("ProductBranch.inventory") } // <-- compare correctly
-        }
-      },
-      {model: Branch, as: "branchInfo", attributes: ["id", "name"]  }
-    ],
-    limit,
-    offset,
-  });
+    // Include product and filter by threshold
+    const { rows, count } = await ProductBranch.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Product,
+          as: "product",
+          attributes: ["id", "title", "threshold"],
+          required: true,
+          where: {
+            threshold: { [Op.gte]: sequelize.col("ProductBranch.inventory") }, // <-- compare correctly
+          },
+        },
+        { model: Branch, as: "branchInfo", attributes: ["id", "name"] },
+      ],
+      limit,
+      offset,
+    });
 
-  return {
-    rows,
-    total: count,
-    page,
-    totalPages: Math.ceil(count / limit),
-  };
-}
+    return {
+      rows,
+      total: count,
+      page,
+      totalPages: Math.ceil(count / limit),
+    };
+  }
+
+  public async getInventoryBreakdown(productId: number) {
+    return await ProductBranch.findAll({
+      where: { productId },
+      include: [{ model: Branch, as: "branch", attributes:["name"] }],
+      attributes: ["inventory"]
+    });
+  }
 }

@@ -177,4 +177,8 @@ export default class ProductService {
       appRole,
     });
   }
+
+  public async getInventoryBreakdown (productId: number){
+    return await this.repo.getInventoryBreakdown(productId)
+  }
 }

@@ -15,9 +15,12 @@ class SaleRepository {
   public async createSale(saleData: Sale, transaction: Transaction) {
     try {
       const sale = await Sale.create(saleData, { transaction });
+      console.log(saleData.tenantId);
+
       const payload = saleData.saleItems?.map((it) => ({
         ...it,
         saleId: sale.id,
+        tenantId: saleData.tenantId,
       }));
       await SaleItem.bulkCreate(payload as any, { transaction });
       return await Sale.findOne({
@@ -160,6 +163,7 @@ class SaleRepository {
           include: [
             { model: Customer, as: "customer" },
             { model: User, as: "userSale", attributes: ["id", "fullName"] },
+            {model: SaleItem, as: "saleItems", include: [{model: Product, as: "product"}]}
           ],
         },
         { model: Branch, as: "branchInvoice" },

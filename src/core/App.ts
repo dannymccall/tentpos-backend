@@ -20,6 +20,10 @@ import { SaleRoutes } from "../routes/SaleRoutes.js";
 import { ExpenseRoutes } from "../routes/ExpenseRoutes.js";
 import { PaymentRoutes } from "../routes/PaymentRoutes.js";
 import { StockAdjustmentRoutes } from "../routes/StockAdjustmentRoutes.js";
+import { DashboardRoutes } from "../routes/DashboardRoutes.js";
+import { ReportRoutes } from "../routes/ReportRoutes.js";
+import { AccountingRoutes } from "../routes/AccountingRoutes.js";
+
 // import { sequelize } from "../config/database";
 
 dotenv.config();
@@ -42,6 +46,9 @@ export class App {
   private expenseRoutes: ExpenseRoutes;
   private paymentRoutes: PaymentRoutes;
   private stockAdjustmentRoutes: StockAdjustmentRoutes;
+  private dashboardRoutes: DashboardRoutes;
+  private reportRoutes: ReportRoutes;
+  private accountingRoutes: AccountingRoutes;
   constructor() {
     this.app = express();
 
@@ -63,6 +70,9 @@ export class App {
     this.expenseRoutes = new ExpenseRoutes();
     this.paymentRoutes = new PaymentRoutes();
     this.stockAdjustmentRoutes = new StockAdjustmentRoutes();
+    this.dashboardRoutes = new DashboardRoutes();
+    this.reportRoutes = new ReportRoutes();
+    this.accountingRoutes = new AccountingRoutes()
     this.routes();
     // this.database();
     this.setupErrorHandling();
@@ -96,6 +106,11 @@ export class App {
     this.app.use("/api/expenses", this.expenseRoutes.router);
     this.app.use("/api/payments", this.paymentRoutes.router);
     this.app.use("/api/stock-adjustments", this.stockAdjustmentRoutes.router);
+    this.app.use("/api/dashboard", this.dashboardRoutes.router);
+    this.app.use("/api/reports", this.reportRoutes.router);
+    this.app.use("/api/accounting", this.accountingRoutes.router)
+     this.app.use("/api/internal/users", this.userRoutes.router);
+
   }
   private setupErrorHandling() {
     this.app.use(globalErrorHandler);

@@ -17,6 +17,7 @@ export  class SaleItem extends Model<
   declare price: number;
   declare total: number;
   declare cost: number;
+  declare tenantId: string
 }
 
 export function initSaleItemModel(sequelize: Sequelize) {
@@ -33,6 +34,7 @@ export function initSaleItemModel(sequelize: Sequelize) {
       price: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
       total: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
       cost: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+      tenantId: {type: DataTypes.STRING, allowNull:false}
     },
     { sequelize, tableName: "sale_items" }
   );

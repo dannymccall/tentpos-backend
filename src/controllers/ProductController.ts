@@ -210,4 +210,14 @@ export class ProductController {
       next(err);
     }
   }
+
+  public async getInventoryBreakdown(req: Request, res: Response, next: NextFunction){
+    try{
+      const id = Number(req.query.id);
+      const breakdown = await this.service.getInventoryBreakdown(id);
+      return sendSuccess(res, "", breakdown, 200)
+    }catch(error){
+      next(error)
+    }
+  }
 }

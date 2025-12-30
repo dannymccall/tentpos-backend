@@ -57,8 +57,15 @@ export class SaleRoutes {
     this.router.post(
       "/return",
       requireAuth,
-      RequirePermission(""),
+      RequirePermission("sales.view"),
       this.controller.processReturnSale.bind(this.controller)
+    );
+    this.router.post(
+      "/complete-hold-sale",
+      requireAuth,
+      RequirePermission("sales.view"),
+      this.controller.completeHoldSale
+      .bind(this.controller)
     );
   }
 }

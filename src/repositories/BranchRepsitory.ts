@@ -20,23 +20,19 @@ export class BranchRepository {
   public getBranches = async (
     page: number = 1,
     limit: number = 10,
-    tenantId: string,
-    search: string = ""
+    search: string = "",
+    baseWhere: any = {}
   ): Promise<PaginatedResponse<Branch> | Branch[]> => {
+    
     if (!limit && !page) {
-      return this.crudService.findAll();
+      return this.crudService.findByConditions({where: {...baseWhere}});
     }
 
     const searchCondition = buildSearchQuery(["name","email"], search);
 
     const offset = (page - 1) * limit;
     const { rows, count } = await Branch.findAndCountAll({
-      where: { tenantId, ...searchCondition },
-      // include: {
-      //   model: BranchManager,
-      //   as: "manager",
-      //   include: [{ model: User, as: "manager" }],
-      // },
+      where: { ...baseWhere, ...searchCondition },
       limit,
       offset,
       order: [["createdAt", "DESC"]],

@@ -25,6 +25,7 @@ export class UserController {
   ) => {
     try {
       const { fullName, tenantId, appRole, userId, email } = req.body;
+      console.log(req.body)
       let user = await User.findOne({ where: { email, tenantId } });
       if (user) {
         return res.status(200).json({ message: "User already exists", user });
@@ -58,7 +59,6 @@ export class UserController {
       const users = await this.userService.getUsers(
         Number(page),
         Number(limit),
-        tenantId,
         where,
         searchTerm as string
       );

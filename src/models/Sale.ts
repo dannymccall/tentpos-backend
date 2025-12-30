@@ -37,8 +37,12 @@ export  class Sale extends Model<
   declare customer?: NonAttribute<Customer>;
   declare branchInvoice?: NonAttribute<Branch>;
   // SaleItem
-declare discountType?: "FIXED" | "PERCENT" | null
-declare discountValue?: number | null
+declare discountType?: "FIXED" | "PERCENT" | null;
+
+declare discountValue?: number | null;
+declare createdAt?: string;
+declare branchSale?: NonAttribute<Branch>;
+declare userSale?: NonAttribute<User>
 
 }
 

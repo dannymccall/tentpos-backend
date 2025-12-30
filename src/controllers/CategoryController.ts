@@ -49,14 +49,11 @@ export class CategoryController {
       const user = (req as any).user;
       if (!user) return next(new AppError("Unauthorized", 401));
 
-      const where = (req as any).applyDataScope("categories", {});
-
       const categories = await this.service.getCategories(
         page,
         limit,
         user.tenantId,
         search,
-        where
       );
 
       return sendSuccess(res, "Categories fetched successfully", categories);

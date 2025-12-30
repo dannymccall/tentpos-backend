@@ -108,11 +108,13 @@ export class BranchController {
       const { page, limit, searchTerm } = req.query;
       // const pageParam = parseInt(page || "1", 10);
       // const limitParam = parseInt(limit || "10", 10);
+      const baseWhere = {};
+      const where = (req as any).applyDataScope("branches", baseWhere)
       const roles = await this.branchService.getBranches(
         Number(page),
         Number(limit),
-        tenantId,
-        searchTerm as string
+        searchTerm as string,
+        where
       );
       return sendSuccess(res, "", roles);
     } catch (error) {

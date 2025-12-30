@@ -12,11 +12,10 @@ export class UserService {
   public getUsers = async (
     page: number = 1,
     limit: number = 10,
-    tenantId: string,
     baseWhere: any = {},
     search: string = ""
   ): Promise<PaginatedResponse<User> | User[]> => {
-    return await this.userRepo.getUsers(page, limit, tenantId, baseWhere, search);
+    return await this.userRepo.getUsers(page, limit,  baseWhere, search);
   };
 
   public updateUser = async (

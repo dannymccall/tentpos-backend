@@ -50,7 +50,8 @@ export default class Product extends Model<
   declare product?: NonAttribute<ProductBranch>;
   declare branches?: NonAttribute<ProductBranch[]>;
   declare branchInventory?: NonAttribute<ProductBranch>;
-  declare threshold: number
+  declare threshold: number;
+  declare categoryProduct: NonAttribute<Category>
 }
 
 export function initProductModel(sequelize: Sequelize) {

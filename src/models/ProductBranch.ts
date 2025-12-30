@@ -5,6 +5,7 @@ import {
   InferCreationAttributes,
   ForeignKey,
   DataTypes,
+  NonAttribute,
 } from "sequelize";
 import Product from "./Product.js";
 import { Branch } from "./Branch.js";
@@ -22,6 +23,8 @@ export  class ProductBranch extends Model<
   declare reorderLevel?: number | null;
   declare tenantId: string;
   declare isActive?: boolean; // visible in this branch
+  declare product?: NonAttribute<Product>;
+  declare branch?: NonAttribute<Branch>
 }
 
 export function initProductBranchModel(sequelize: any) {

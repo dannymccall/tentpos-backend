@@ -26,14 +26,12 @@ export class CategoryService {
     limit: number = 10,
     tenantId: string,
     search: string = "",
-    where: any = {}
   ): Promise<PaginatedResponse<Category> | Category[]> => {
     return await this.categoryRepo.getCategories(
       page,
       limit,
       tenantId,
       search,
-      where
     );
   };
 

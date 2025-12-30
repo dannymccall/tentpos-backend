@@ -11,9 +11,23 @@ import { ReturnDto } from "../types.js";
 import { SaleReturn } from "../models/SaleReturn.js";
 import { SaleReturnItem } from "../models/SaleReturnItems.js";
 import StockAdjustmentService from "./StockAdjustmentService.js";
+import { Transaction } from "sequelize";
+import Payment from "../models/Payment.js";
+import { Branch } from "../models/Branch.js";
 
 interface CreateSaleInput extends Sale {
   holdSale?: boolean;
+}
+
+interface CompleteHoldSalePayload {
+  saleId: number;
+  amountPaid: number;
+  paymentMethod: "cash" | "mobile" | "bank" | "crypto";
+  userId: number;
+  tenantId: string;
+  branchId: number;
+  tax: number;
+  discount: number;
 }
 
 class SalesService {
@@ -279,12 +293,19 @@ class SalesService {
             where: { id: item.productId },
             transaction: t,
           }),
-          ProductBranch.increment("inventory", {
-            by: item.quantity,
-            where: { id: item.productId },
-            transaction: t,
-          }),
         ]);
+        await StockAdjustmentService.adjustStock(
+          {
+            productId: item.productId,
+            branchId: sale.branchId!,
+            qtyChange: item.quantity, // INCREASE
+            reason: "FOUND",
+            note: "Return - resaleable",
+            userId: sale.userId,
+            tenantId: sale.tenantId,
+          },
+          t
+        );
       }
 
       // 3. Update sale status
@@ -457,6 +478,133 @@ class SalesService {
     baseWhere: any = {}
   ) {
     return await saleRepository.getSaleReturns(page, limit, search, baseWhere);
+  }
+
+  public async completeHoldSale(payload: CompleteHoldSalePayload) {
+    const transaction: Transaction = await sequelize.transaction();
+
+    try {
+      const sale = await Sale.findOne({
+        where: {
+          id: payload.saleId,
+          tenantId: payload.tenantId,
+          branchId: payload.branchId,
+        },
+        include: [{ model: SaleItem, as: "saleItems" }],
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!sale) {
+        throw new Error("Sale not found");
+      }
+
+      if (sale.status !== "HOLD") {
+        throw new Error("Only HOLD sales can be completed");
+      }
+
+      if (payload.amountPaid <= 0) {
+        throw new Error("Invalid payment amount");
+      }
+
+      // 1️⃣ Validate stock before touching anything
+      for (const item of sale.saleItems!) {
+        const product = await Product.findByPk(item.productId, {
+          transaction,
+          include: [{ model: ProductBranch, as: "branches" }],
+          lock: transaction.LOCK.UPDATE,
+        });
+
+        if (!product) {
+          throw new Error("Product not found");
+        }
+
+        if (product.branches![0].inventory < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.title}`);
+        }
+      }
+
+      // 2️⃣ Deduct inventory
+      for (const item of sale.saleItems!) {
+        await Promise.all([
+          ProductBranch.decrement(
+            { inventory: item.quantity },
+            {
+              where: { id: item.productId },
+              transaction,
+            }
+          ),
+          ProductBranch.increment("qtySold", {
+            by: item.quantity,
+            where: { id: item.productId },
+          }),
+        ]);
+      }
+
+      // 3️⃣ Create payment record
+      await Payment.create(
+        {
+          saleId: sale.id,
+          amount: payload.amountPaid,
+          method: payload.paymentMethod as any,
+          userId: payload.userId,
+          tenantId: payload.tenantId,
+          branchId: payload.branchId,
+          description: `Sale payment for sale ${sale.saleNumber}`,
+        },
+        { transaction }
+      );
+      // 4️⃣ Update sale
+      const tax = Number(payload.tax || 0);
+      const discount = Number(payload.discount);
+      sale.status = "COMPLETED";
+      sale.amountPaid = payload.amountPaid;
+      sale.total = sale.total! + tax - discount;
+      sale.balance = sale.total - payload.amountPaid;
+      sale.paymentMethod = payload.paymentMethod;
+      sale.paymentStatus = "PAID"
+      sale.tax = tax;
+      sale.discount = discount;
+      await sale.save({ transaction });
+
+      const invoice = await saleRepository.createInvoice(
+        {
+          invoiceNumber: `INV-${Date.now()}`,
+          saleId: sale?.id,
+          customerId: sale.customerId,
+          amountDue: sale.total,
+          status: "PAID",
+          tenantId: sale.tenantId,
+          branchId: sale.branchId,
+        } as any,
+        transaction
+      );
+      // 5️⃣ Commit everything
+      const completedSale = await Sale.findOne({
+        where: { id: sale.id },
+        include: [
+          {
+            model: SaleItem,
+            as: "saleItems",
+            include: [
+              { model: Product, as: "product", attributes: ["id", "title"] },
+            ],
+          },
+          { model: Customer, as: "customer" },
+          { model: Branch, as: "branchSale" },
+          { model: Invoice, as: "invoice" },
+        ],
+        transaction,
+      });
+      await transaction.commit();
+      return {
+        sale: completedSale,
+        invoice,
+      };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 }
 

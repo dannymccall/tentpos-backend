@@ -145,6 +145,21 @@ class SaleController {
       next(err);
     }
   }
+
+  public async completeHoldSale (req: Request, res:Response, next: NextFunction){
+    try{
+      const {tenantId, userId,branchId} = (req as any).user;
+      const result = await saleService.completeHoldSale({...req.body, tenantId, userId, branchId})
+       return sendSuccess(
+        res,
+        "Sale completed Successfully",
+        { sale: result.sale, invoice: result.invoice },
+        201
+      );
+    }catch(error){
+      next(error)
+    }
+  }
 }
 
 export default new SaleController();
