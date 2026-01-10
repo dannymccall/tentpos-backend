@@ -24,8 +24,8 @@ async function jsonFetch<T = any>(url: string, opts: RequestInit = {}) {
 
 export default {
   get: <T = any>(path: string) => jsonFetch<T>(path, { method: "GET" }),
-  put: <T = any>(path: string, body?: any) =>
-    jsonFetch<T>(path, { method: "PUT", body: body instanceof FormData ? body : JSON.stringify(body) }),
+  put: <T = any>(path: string, body?: any, opts: RequestInit = {}) =>
+    jsonFetch<T>(path, { method: "PUT", body: body instanceof FormData ? body : JSON.stringify(body) ,...opts}),
   post: <T = any>(path: string, body?: any, opts: RequestInit = {}) =>
     jsonFetch<T>(path, { method: "POST", body: body instanceof FormData ? body : JSON.stringify(body), ...opts }),
   del: <T = any>(path: string) => jsonFetch<T>(path, { method: "DELETE" }),

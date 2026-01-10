@@ -23,6 +23,7 @@ import { StockAdjustmentRoutes } from "../routes/StockAdjustmentRoutes.js";
 import { DashboardRoutes } from "../routes/DashboardRoutes.js";
 import { ReportRoutes } from "../routes/ReportRoutes.js";
 import { AccountingRoutes } from "../routes/AccountingRoutes.js";
+import { TicketRoutes } from "../routes/TicketRoutes.js";
 
 // import { sequelize } from "../config/database";
 
@@ -49,6 +50,8 @@ export class App {
   private dashboardRoutes: DashboardRoutes;
   private reportRoutes: ReportRoutes;
   private accountingRoutes: AccountingRoutes;
+  private ticketRoutes: TicketRoutes;
+
   constructor() {
     this.app = express();
 
@@ -72,7 +75,9 @@ export class App {
     this.stockAdjustmentRoutes = new StockAdjustmentRoutes();
     this.dashboardRoutes = new DashboardRoutes();
     this.reportRoutes = new ReportRoutes();
-    this.accountingRoutes = new AccountingRoutes()
+    this.accountingRoutes = new AccountingRoutes();
+    this.ticketRoutes = new TicketRoutes();
+
     this.routes();
     // this.database();
     this.setupErrorHandling();
@@ -108,9 +113,9 @@ export class App {
     this.app.use("/api/stock-adjustments", this.stockAdjustmentRoutes.router);
     this.app.use("/api/dashboard", this.dashboardRoutes.router);
     this.app.use("/api/reports", this.reportRoutes.router);
-    this.app.use("/api/accounting", this.accountingRoutes.router)
-     this.app.use("/api/internal/users", this.userRoutes.router);
-
+    this.app.use("/api/accounting", this.accountingRoutes.router);
+    this.app.use("/api/internal/users", this.userRoutes.router);
+    this.app.use("/api/tickets", this.ticketRoutes.router);
   }
   private setupErrorHandling() {
     this.app.use(globalErrorHandler);

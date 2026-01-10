@@ -5,7 +5,8 @@ import fs from "fs";
 import cloudinary from "../config/cloudinary.config.js";
 import type { UploadApiResponse } from "cloudinary";
 import mime from "mime-types";
-
+import jwt from "jsonwebtoken"
+import { ENV } from "../config/env.js";
 export function buildSearchQuery(
   fields: string[],
   search: string,
@@ -146,3 +147,11 @@ export async function processFile(
 
   export const toMoney = (n: number) =>
   Math.round((n + Number.EPSILON) * 100) / 100;
+
+  export const signServiceJWT = (appId: string, tenantId: string,userId:number,  scopes: string[]) => {
+  return jwt.sign(
+    { type: "service", appId, tenantId, userId, scope: scopes },
+    ENV.SERVICE_JWT_SECRET,
+    { expiresIn: "15m" }
+  );
+};
