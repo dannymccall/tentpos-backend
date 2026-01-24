@@ -36,7 +36,7 @@ export class AuthController {
           client_id: ENV.TENTPOS_APP_ID,
           client_secret: ENV.TENTPOS_APP_SECRET,
           code,
-          redirect_url: `${ENV.REDIRECT_URL}/tentpos/auth/callback`,
+          redirect_url: `${ENV.REDIRECT_URL}/auth/callback`,
           grant_type: "authorization_code",
         }
       );

@@ -9,19 +9,21 @@ import {
 } from "sequelize";
 import { Branch } from "./Branch.js";
 import { User } from "./User.js";
+import { Customer } from "./Customer.js";
 
 export default class Payment extends Model<
   InferAttributes<Payment>,
   InferCreationAttributes<Payment>
 > {
   declare id: CreationOptional<number>;
-  declare saleId: number;
+  declare saleId: number | null;
   declare amount: number;
   declare method: "CASH" | "MOMO" | "BANK" | "CRYPTO";
   declare tenantId: string;
   declare branchId: ForeignKey<Branch["id"]>;
   declare userId: ForeignKey<User["id"]>;
   declare description: string;
+  declare customerId: ForeignKey<Customer['id'] | null>
 }
 export function initPaymentModel(sequelize: Sequelize) {
   Payment.init(
@@ -42,6 +44,10 @@ export function initPaymentModel(sequelize: Sequelize) {
         allowNull: true,
         defaultValue: "Payment received",
       },
+      customerId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull:true
+      }
     },
     { sequelize, tableName: "payments", timestamps: true }
   );

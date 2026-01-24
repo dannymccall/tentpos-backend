@@ -35,7 +35,7 @@ export function initSupplierModel(sequelize: Sequelize) {
       openingBalance: {
         type: DataTypes.DECIMAL(12, 2),
         allowNull: true,
-        defaultValue: 0,
+        defaultValue: 0.00,
       },
       tenantId: {
         type: DataTypes.STRING(100),

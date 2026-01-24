@@ -160,6 +160,7 @@ export class ExpenseController {
 
       return sendSuccess(res, "Expense deleted", {}, 201);
     } catch (err) {
+      console.log(err)
       next(err);
     }
   };

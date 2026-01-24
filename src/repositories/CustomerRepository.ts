@@ -4,10 +4,25 @@ import Debtor from "../models/Debtos.js";
 import { PaginatedResponse } from "../types.js";
 import { buildSearchQuery } from "../utils/helperFunctions.js";
 import { Branch } from "../models/Branch.js";
-
 class CustomerRepository {
   async createCustomer(data: any) {
-    return Customer.create(data);
+    const newCustomer = await Customer.create(data);
+
+    const { openingBalance, tenantId, branchId } = data;
+
+    if (openingBalance && !isNaN(openingBalance) && openingBalance > 0) {
+      await Debtor.create({
+        customerId: newCustomer.id,
+        totalOwed: openingBalance,
+        oldestDebtDate: new Date(),
+        lastSaleDate: null,
+        status: "ACTIVE",
+        tenantId,
+        branchId,
+      });
+    }
+
+    return newCustomer;
   }
 
   async updateCustomer(id: number, data: any) {
@@ -24,11 +39,11 @@ class CustomerRepository {
     page: number = 1,
     limit: number = 10,
     search: string = "",
-    baseWhere: any = {}
+    baseWhere: any = {},
   ): Promise<PaginatedResponse<Customer> | Customer[]> => {
     const searchCondition = buildSearchQuery(
       ["firstName", "lastName", "email"],
-      search
+      search,
     );
 
     const where = {
@@ -80,11 +95,11 @@ class CustomerRepository {
     page: number = 1,
     limit: number = 10,
     search: string = "",
-    baseWhere: any = {}
+    baseWhere: any = {},
   ) {
     const searchCondition = buildSearchQuery(
       ["firstName", "lastName", "email"],
-      search
+      search,
     );
 
     const where = {

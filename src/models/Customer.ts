@@ -20,6 +20,8 @@ export  class Customer extends Model<
   declare tenantId: string;
   declare branchId?: number | null;
   declare creditLimit?: number | null;
+  declare creditLimitAllocated?: boolean | null;
+  declare openingBalance?: number | null
 }
 
 export function initCustomerModel(sequelize: Sequelize){
@@ -39,6 +41,8 @@ export function initCustomerModel(sequelize: Sequelize){
         tenantId: { type: DataTypes.STRING, allowNull: false },
         branchId: { type: DataTypes.INTEGER.UNSIGNED, allowNull: true },
         creditLimit: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
+        creditLimitAllocated: {type: DataTypes.BOOLEAN, defaultValue:false},
+        openingBalance: {type: DataTypes.FLOAT, defaultValue: 0.00}
       },
       {
         sequelize,

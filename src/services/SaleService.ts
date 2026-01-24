@@ -31,235 +31,255 @@ interface CompleteHoldSalePayload {
 }
 
 class SalesService {
-  public async createSale(sale: CreateSaleInput) {
-    return sequelize.transaction(async (t) => {
-      const productIds = sale.saleItems?.map((i) => i.productId);
-      const products = await Product.findAll({
-        where: { id: productIds },
+ public async createSale(sale: CreateSaleInput) {
+  return sequelize.transaction(async (t) => {
+
+    /* =========================
+       1. VALIDATE PRODUCTS
+    ========================== */
+    const productIds = sale?.saleItems?.map(i => i.productId);
+
+    const products = await Product.findAll({
+      where: { id: productIds },
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+
+    const branchProducts = await ProductBranch.findAll({
+      where: { productId: productIds, branchId: sale.branchId },
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+
+    for (const item of sale.saleItems!) {
+      const product = products.find(p => p.id === item.productId);
+      const branchProduct = branchProducts.find(b => b.productId === item.productId);
+
+      if (!product) {
+        return { status: "error", message: "Product not found" };
+      }
+
+      if (!branchProduct) {
+        return {
+          status: "error",
+          message: `Product ${product.title} not available in branch`,
+        };
+      }
+
+      if (!sale.holdSale && branchProduct.inventory < item.quantity) {
+        return {
+          status: "error",
+          message: `Insufficient stock for ${product.title}`,
+        };
+      }
+
+      item.cost = Number(product.cost);
+    }
+
+    /* =========================
+       2. CALCULATE TOTALS
+    ========================== */
+    const subtotal = sale.saleItems?.reduce(
+      (sum, i) => sum + (Number(i.total) || i.price * i.quantity),
+      0,
+    );
+
+    const tax = Number(sale.tax || 0);
+    const discount = Number(sale.discount || 0);
+    const total = subtotal! + tax - discount;
+    const balance = total - sale.amountPaid;
+
+    /* =========================
+       3. VALIDATE PARTIAL RULE
+    ========================== */
+    if (
+      !sale.holdSale &&
+      sale.amountPaid < total &&
+      sale.customerId == null
+    ) {
+      return {
+        status: "error",
+        message: "Customer required for partial or credit sales",
+      };
+    }
+
+    /* =========================
+       4. DERIVE STATUSES (🔥 IMPORTANT)
+    ========================== */
+    const status = sale.holdSale ? "HOLD" : "COMPLETED";
+
+    const paymentStatus = sale.holdSale
+      ? "HOLD"
+      : balance === 0
+        ? "PAID"
+        : sale.amountPaid > 0
+          ? "PARTIAL"
+          : "CREDIT";
+
+    /* =========================
+       5. CREATE SALE (ONCE)
+    ========================== */
+    const newSale = await saleRepository.createSale(
+      {
+        saleNumber: `S-${Date.now()}`,
+        customerId: sale.customerId,
+        subtotal,
+        discount,
+        tax,
+        total,
+        amountPaid: sale.amountPaid,
+        balance,
+        paymentMethod: sale.paymentMethod,
+        status,
+        paymentStatus,
+        tenantId: sale.tenantId,
+        branchId: sale.branchId,
+        date: sale.date ? new Date(sale.date) : new Date(),
+        userId: sale.userId,
+        saleItems: sale.saleItems,
+      } as any,
+      t,
+    );
+
+    /* =========================
+       6. STOP HERE FOR HOLD SALES
+    ========================== */
+    if (sale.holdSale) {
+      return { status: "success", newSale };
+    }
+
+    /* =========================
+       7. CREATE INVOICE (ONCE)
+    ========================== */
+    const invoice = await saleRepository.createInvoice(
+      {
+        invoiceNumber: `INV-${Date.now()}`,
+        saleId: newSale?.id!,
+        customerId: sale.customerId,
+        amountDue: total,
+        status:
+          balance === 0 ? "PAID" :
+          sale.amountPaid > 0 ? "PARTIAL" :
+          "UNPAID",
+        tenantId: sale.tenantId,
+        branchId: sale.branchId,
+      } as any,
+      t,
+    );
+
+    /* =========================
+       8. RECORD PAYMENT (ONCE)
+    ========================== */
+    if (sale.amountPaid > 0) {
+      await saleRepository.recordPayment(
+        {
+          saleId: newSale?.id,
+          amount: sale.amountPaid,
+          tenantId: sale.tenantId,
+          userId: sale.userId,
+          branchId: sale.branchId,
+          method: sale.paymentMethod || "CASH",
+          description: `Payment for sale ${newSale?.saleNumber}`,
+        } as any,
+        t,
+      );
+    }
+
+    /* =========================
+       9. HANDLE DEBTOR
+    ========================== */
+    if (balance > 0) {
+      const customer = await Customer.findByPk(sale.customerId!, {
         transaction: t,
         lock: t.LOCK.UPDATE,
       });
 
-      const branchProducts = await ProductBranch.findAll({
-        where: { productId: productIds },
-      });
-
-      for (const it of sale.saleItems!) {
-        const p = products.find((x) => x.id === it.productId);
-        const branchProduct = branchProducts.find(
-          (x) => x.productId === it.productId
-        );
-
-        if (!branchProduct) {
-          return {
-            status: "error",
-            message: `Product ${(p as any)?.title} not available in branch`,
-          };
-        }
-
-        if (!p) {
-          return {
-            status: "error",
-            message: `Product ${(p as any)?.title} not found`,
-          };
-        }
-
-        if (branchProduct?.inventory! < it.quantity && !sale.holdSale) {
-          return {
-            status: "error",
-            message: `Insufficient stock for product ${p.title}`,
-          };
-        }
-
-        it.cost = Number(p.cost);
+      if (!customer) {
+        return { status: "error", message: "Customer not found" };
       }
 
-      const subtotal = sale.saleItems?.reduce(
-        (s, it) => s + Number(it.total || it.price * it.quantity),
-        0
-      );
-      const tax = Number(sale.tax || 0);
-      const discount = Number(sale.discount);
-      const total = subtotal! + tax - discount;
-      const balance = Number(total - sale.amountPaid);
-      console.log(sale);
+      const debtor = await Debtor.findOne({
+        where: { customerId: sale.customerId! },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+
+      const projectedDebt =
+        (debtor ? Number(debtor.totalOwed) : 0) + balance;
+
       if (
-        sale.amountPaid < subtotal! &&
-        !sale.holdSale &&
-        sale.customerId === null
+        customer.creditLimitAllocated &&
+        projectedDebt > Number(customer.creditLimit)
       ) {
         return {
           status: "error",
-          message: `Please select a customer for partial payments.`,
+          message: `Credit limit of ${customer.creditLimit} exceeded`,
         };
       }
 
-      const paymentStatus =
-        balance === 0
-          ? "PAID"
-          : sale.amountPaid > 0
-          ? "PARTIAL"
-          : sale.holdSale
-          ? "HOLD"
-          : "CREDIT";
-      // const status = balance === 0 ? "PAID" : "PENDING";
-      // Determine statuses based on hold
-      const status = sale.holdSale ? "HOLD" : "COMPLETED";
-      // const paymentStatus = sale.holdSale ? "PENDING" : "PAID";
-
-      const newSale = await saleRepository.createSale(
-        {
-          saleNumber: `S-${Date.now()}`,
-          customerId: sale.customerId,
-          subtotal: subtotal!,
-          discount,
-          tax,
-          total,
-          paymentMethod: sale.paymentMethod,
-          status,
-          paymentStatus,
-          tenantId: sale.tenantId,
-          branchId: sale.branchId,
-          saleItems: sale.saleItems,
-          amountPaid: sale.amountPaid,
-          balance,
-          date: sale.date,
-          userId: sale.userId,
-        } as any,
-        t
-      );
-
-      if (!sale.holdSale) {
-        // Only create invoice and update inventory if it's not a hold
-        const invoice = await saleRepository.createInvoice(
+      if (debtor) {
+        await debtor.update(
           {
-            invoiceNumber: `INV-${Date.now()}`,
-            saleId: newSale?.id,
-            customerId: sale.customerId,
-            amountDue: total,
-            status: paymentStatus,
+            totalOwed: projectedDebt,
+            lastSaleDate: new Date(),
+            status: "ACTIVE",
+          },
+          { transaction: t },
+        );
+      } else {
+        await Debtor.create(
+          {
+            customerId: sale.customerId!,
+            totalOwed: balance,
+            oldestDebtDate: new Date(),
+            lastSaleDate: new Date(),
+            status: "ACTIVE",
             tenantId: sale.tenantId,
             branchId: sale.branchId,
-          } as any,
-          t
+          },
+          { transaction: t },
         );
-        if (sale.amountPaid > 0) {
-          await saleRepository.recordPayment(
-            {
-              saleId: newSale?.id!,
-              amount: sale.amountPaid,
-              tenantId: sale.tenantId,
-              userId: sale.userId,
-              branchId: sale.branchId as any,
-              method: (sale.paymentMethod as any) || "CASH",
-            } as any,
-            t
-          );
-        }
-
-        if (balance > 0) {
-          const customer = await Customer.findByPk(sale.customerId!, {
-            transaction: t,
-            lock: t.LOCK.UPDATE,
-          });
-
-          if (!customer) {
-            throw new Error("Customer not found for debtor record.");
-          }
-
-          const debtor = await Debtor.findOne({
-            where: { customerId: sale.customerId! },
-            transaction: t,
-            lock: t.LOCK.UPDATE,
-          });
-
-          const existingDebt = debtor ? Number(debtor.totalOwed) : 0;
-          const projectedDebt = existingDebt + balance;
-
-          if (projectedDebt > Number(customer.creditLimit)) {
-            throw new Error(
-              `Customer credit limit of ${customer.creditLimit} exceeded.`
-            );
-          }
-
-          console.log({ debtor });
-
-          if (debtor) {
-            await debtor.update(
-              {
-                totalOwed: projectedDebt,
-                lastSaleDate: new Date(),
-                status: "ACTIVE",
-              },
-              { transaction: t }
-            );
-          } else {
-            await Debtor.create(
-              {
-                customerId: sale.customerId!,
-                totalOwed: balance,
-                oldestDebtDate: new Date(),
-                lastSaleDate: new Date(),
-                status: "ACTIVE",
-                tenantId: sale.tenantId,
-                branchId: sale.branchId!,
-              },
-              { transaction: t }
-            );
-          }
-        }
-
-        if (sale.amountPaid > 0) {
-          await saleRepository.recordPayment(
-            {
-              saleId: newSale?.id!,
-              amount: sale.amountPaid,
-              tenantId: sale.tenantId,
-              userId: sale.userId,
-              branchId: sale.branchId as any,
-              method: (sale.paymentMethod as any) || "CASH",
-              description: `Payment for sale ${newSale?.saleNumber}`,
-            } as any,
-            t
-          );
-        }
-
-        for (const it of sale.saleItems!) {
-          await Promise.all([
-            ProductBranch.increment("qtySold", {
-              by: it.quantity,
-              where: { productId: it.productId },
-              transaction: t,
-            }),
-            ProductBranch.decrement("inventory", {
-              by: it.quantity,
-              where: { productId: it.productId },
-              transaction: t,
-            }),
-          ]);
-        }
-
-        return { status: "success", newSale, invoice };
       }
+    }
 
-      // For hold sales, skip invoice and inventory decrement
-      return { status: "success", newSale };
-    });
-  }
+    /* =========================
+       10. UPDATE INVENTORY
+    ========================== */
+    for (const item of sale.saleItems!) {
+      await Promise.all([
+        ProductBranch.increment("qtySold", {
+          by: item.quantity,
+          where: { productId: item.productId, branchId: sale.branchId },
+          transaction: t,
+        }),
+        ProductBranch.decrement("inventory", {
+          by: item.quantity,
+          where: { productId: item.productId, branchId: sale.branchId },
+          transaction: t,
+        }),
+      ]);
+    }
+
+    return { status: "success", newSale, invoice };
+  });
+}
+
 
   public async list(
     page: number = 1,
     limit: number = 10,
     search: string = "",
     baseWhere: any = {},
-    status?: string
+    status?: string,
+    customerId?:number
   ) {
     return await saleRepository.getAllSales(
       page,
       limit,
       search,
       baseWhere,
-      status
+      status,
+      customerId
     );
   }
 
@@ -304,7 +324,7 @@ class SalesService {
             userId: sale.userId,
             tenantId: sale.tenantId,
           },
-          t
+          t,
         );
       }
 
@@ -339,10 +359,11 @@ class SalesService {
     page: number = 1,
     limit: number = 10,
     search: string = "",
-    baseWhere: any = {}
+    baseWhere: any = {},
   ) {
     return await saleRepository.getInvoices(page, limit, search, baseWhere);
   }
+
 
   public async returnSale(payload: ReturnDto, userId: number) {
     return sequelize.transaction(async (t) => {
@@ -367,7 +388,7 @@ class SalesService {
       // 1️⃣ Validate & calculate refund
       for (const item of items) {
         const saleItem = sale.saleItems?.find(
-          (si) => si.id === item.saleItemId
+          (si) => si.id === item.saleItemId,
         );
 
         if (!saleItem) {
@@ -389,7 +410,7 @@ class SalesService {
 
         if (item.quantityToReturn > remainingQty) {
           throw new Error(
-            `Cannot return more than remaining quantity (${remainingQty})`
+            `Cannot return more than remaining quantity (${remainingQty})`,
           );
         }
 
@@ -408,13 +429,13 @@ class SalesService {
           note,
           userId,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // 3️⃣ Create Return Items + Adjust Stock
       for (const item of items) {
         const saleItem = sale.saleItems!.find(
-          (si) => si.id === item.saleItemId
+          (si) => si.id === item.saleItemId,
         )!;
 
         await SaleReturnItem.create(
@@ -427,7 +448,7 @@ class SalesService {
             condition: item.condition,
             refundAmount: item.quantityToReturn * saleItem.price,
           },
-          { transaction: t }
+          { transaction: t },
         );
 
         // 4️⃣ Inventory logic
@@ -442,7 +463,7 @@ class SalesService {
               userId,
               tenantId: sale.tenantId,
             },
-            t
+            t,
           );
         }
       }
@@ -462,7 +483,7 @@ class SalesService {
       await sale.save({ transaction: t });
       await Invoice.update(
         { status: "RETURN" },
-        { where: { saleId }, transaction: t }
+        { where: { saleId }, transaction: t },
       );
       return {
         status: "success",
@@ -475,14 +496,13 @@ class SalesService {
     page: number = 1,
     limit: number = 10,
     search: string = "",
-    baseWhere: any = {}
+    baseWhere: any = {},
   ) {
     return await saleRepository.getSaleReturns(page, limit, search, baseWhere);
   }
 
   public async completeHoldSale(payload: CompleteHoldSalePayload) {
     const transaction: Transaction = await sequelize.transaction();
-
     try {
       const sale = await Sale.findOne({
         where: {
@@ -532,7 +552,7 @@ class SalesService {
             {
               where: { id: item.productId },
               transaction,
-            }
+            },
           ),
           ProductBranch.increment("qtySold", {
             by: item.quantity,
@@ -552,7 +572,7 @@ class SalesService {
           branchId: payload.branchId,
           description: `Sale payment for sale ${sale.saleNumber}`,
         },
-        { transaction }
+        { transaction },
       );
       // 4️⃣ Update sale
       const tax = Number(payload.tax || 0);
@@ -562,7 +582,7 @@ class SalesService {
       sale.total = sale.total! + tax - discount;
       sale.balance = sale.total - payload.amountPaid;
       sale.paymentMethod = payload.paymentMethod;
-      sale.paymentStatus = "PAID"
+      sale.paymentStatus = "PAID";
       sale.tax = tax;
       sale.discount = discount;
       await sale.save({ transaction });
@@ -577,7 +597,7 @@ class SalesService {
           tenantId: sale.tenantId,
           branchId: sale.branchId,
         } as any,
-        transaction
+        transaction,
       );
       // 5️⃣ Commit everything
       const completedSale = await Sale.findOne({

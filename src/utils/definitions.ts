@@ -37,7 +37,7 @@ const itemSchema = z.object({
   total: z.number(),
 });
 const headerSchema = z.object({
-  supplierId: z.number(),
+  supplierId: z.number().optional().or(z.null()),
   receiptNumber: z.string().optional(),
   purchaseDate: z.string().optional(),
   status: z.enum(["draft", "completed", "cancelled"]).optional(),
@@ -57,6 +57,9 @@ export const customerSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   creditLimit: z.number().optional(),
+    creditLimitAllocated: z.boolean().default(false).optional(),
+    openingBalance: z.number().optional()
+
 });
 
 const saleitemSchema = z.object({

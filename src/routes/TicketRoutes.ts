@@ -3,6 +3,7 @@ import { TicketController } from "../controllers/TicketController.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
 import multer from "multer";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 const uploaded = multer({ dest: "uploads/tickets-attachments" });
 

@@ -25,6 +25,7 @@ export class ProductController {
       if (typeof payload.images === "string")
         payload.images = JSON.parse(payload.images);
 
+      console.log("going to service")
       const product = await this.service.createProduct({
         ...payload,
         tenantId,
@@ -95,7 +96,7 @@ export class ProductController {
       if (typeof payload.images === "string")
         payload.images = JSON.parse(payload.images);
 
-      const product = await this.service.updateProduct(id, payload);
+      const product = await this.service.updateProduct(id, {...payload, tenantId});
 
       await this.service.updateBranchProduct(
         id,

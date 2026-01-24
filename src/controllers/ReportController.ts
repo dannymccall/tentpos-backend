@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { sendSuccess } from "../utils/sendSuccess.js";
 import salesReportService from "../services/reports/SalesReportService.js";
-import inventoryReportService from "../services/reports/InventoryReportService.js"
+import inventoryReportService from "../services/reports/InventoryReportService.js";
+import purchasesReport from "../services/reports/PurchasesReportService.js"
 export class ReportController {
   public getSalesReport = async (
     req: Request,
@@ -30,6 +31,25 @@ export class ReportController {
     try {
       const tenantId = (req as any).user.tenantId;
       const report = await inventoryReportService.reportHandler({
+        ...req.body,
+        tenantId,
+      });
+
+      console.log(report)
+
+      return sendSuccess(res, "", report, 200)
+    } catch (error) {
+      next(error);
+    }
+  };
+  public getPurchasesReport = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const tenantId = (req as any).user.tenantId;
+      const report = await purchasesReport.getPurchasesReport({
         ...req.body,
         tenantId,
       });

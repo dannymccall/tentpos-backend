@@ -135,10 +135,11 @@ export class UserController {
   ) => {
     try {
       const { staffId } = req.query;
-
+      const tenantId = (req as any).user.tenantId
       console.log({staffId})
-      const staffDetails = await this.userService.getStaffDetails(
-        parseInt(staffId as string)
+      const staffDetails = await this.userService.getUserDetails(
+        parseInt(staffId as string),
+        tenantId
       );
       console.log({staffDetails});
 

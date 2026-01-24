@@ -3,6 +3,7 @@ import PurchaseController from "../controllers/PurchaseController.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { RequirePermission } from "../middlewares/Requirepermission.js";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 export class PurchaseRoutes {
   private controller: typeof PurchaseController;
@@ -18,6 +19,8 @@ export class PurchaseRoutes {
       "/",
       requireAuth,
       RequirePermission("purchase.create"),
+            requireActiveSubscription(),
+      
       this.controller.create.bind(this.controller)
     );
     this.router.get(
@@ -37,12 +40,16 @@ export class PurchaseRoutes {
       "/update",
       requireAuth,
       RequirePermission("purchase.view"),
+            requireActiveSubscription(),
+
       this.controller.update.bind(this.controller)
     );
     this.router.delete(
       "/delete",
       requireAuth,
       RequirePermission("purchase.delete"),
+            requireActiveSubscription(),
+
       this.controller.remove.bind(this.controller)
     );
   }

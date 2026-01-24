@@ -1,6 +1,7 @@
 import { RoleController } from "../controllers/RoleController.js";
 import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 export class RoleRoutes {
   private controller: RoleController;
@@ -16,6 +17,8 @@ export class RoleRoutes {
     this.router.post(
       "/add-role",
       requireAuth,
+            requireActiveSubscription(),
+      
       this.controller.addNewRole.bind(this.controller)
     );
     this.router.get(
@@ -31,11 +34,15 @@ export class RoleRoutes {
     this.router.delete(
       "/delete-role",
       requireAuth,
+            requireActiveSubscription(),
+
       this.controller.deleteRole.bind(this.controller)
     );
     this.router.put(
       "/update-role",
       requireAuth,
+            requireActiveSubscription(),
+
       this.controller.updateRole.bind(this.controller)
     );
   }

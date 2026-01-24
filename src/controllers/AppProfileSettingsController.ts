@@ -53,11 +53,14 @@ export class AppProfileSettingController {
       try {
         if (files && files?.filename) {
           console.log("you");
-          logo = await processFile(
-            files.path,
+          logo = await processFile({
+            filePath:files.path,
             tenantId,
-            "logos",
-            files.originalname
+           folder: "logos",
+           originalName: files.originalname,
+           type: "logo"
+
+          }
           );
         }
       } catch (error) {

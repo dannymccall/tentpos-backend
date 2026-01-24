@@ -8,7 +8,7 @@ import { ProductBranch } from "../models/ProductBranch.js";
 import { Branch } from "../models/Branch.js";
 import { fn, col, literal } from "sequelize";
 import sequelize from "sequelize/lib/sequelize";
-
+import sq from "../config/database.js";
 export class ProductRepository {
   public async create(data: any, t?: Transaction) {
     const product = await Product.create(data, { transaction: t });
@@ -32,49 +32,56 @@ export class ProductRepository {
     return product;
   }
 
-  public async update(id: number, data: any, t?: Transaction) {
-    const product = await Product.findByPk(id);
-    if (!product) return null;
-    await product.update(data, { transaction: t });
+  public async update(id: number, data: any) {
+    const t = await sq.transaction();
+    try {
+      const product = await Product.findByPk(id);
+      if (!product) return null;
+      await product.update(data, { transaction: t });
 
-    // replace variants (simple approach: delete existing and recreate)
-    if ("variants" in data) {
-      await ProductVariant.destroy({
-        where: { productId: id },
-        transaction: t,
-      });
-      if (Array.isArray(data.variants) && data.variants.length) {
-        const variants = data.variants.map((v: any) => ({
-          ...v,
-          productId: id,
-        }));
-        await ProductVariant.bulkCreate(variants, { transaction: t });
-      }
-    }
-
-    // replace images
-    if ("images" in data) {
-      if (Array.isArray(data.images) && data.images.length) {
-        await ProductImage.destroy({
+      // replace variants (simple approach: delete existing and recreate)
+      if ("variants" in data) {
+        await ProductVariant.destroy({
           where: { productId: id },
           transaction: t,
         });
-        const imgs = data.images.map((img: any, i: number) => ({
-          productId: id,
-          url: img.url ?? img,
-          order: i,
-        }));
-        await ProductImage.bulkCreate(imgs, { transaction: t });
+        if (Array.isArray(data.variants) && data.variants.length) {
+          const variants = data.variants.map((v: any) => ({
+            ...v,
+            productId: id,
+          }));
+          await ProductVariant.bulkCreate(variants, { transaction: t });
+        }
       }
+
+      // replace images
+      if ("images" in data) {
+        if (Array.isArray(data.images) && data.images.length) {
+          await ProductImage.destroy({
+            where: { productId: id },
+            transaction: t,
+          });
+          const imgs = data.images.map((img: any, i: number) => ({
+            productId: id,
+            url: img.url ?? img,
+            order: i,
+          }));
+          await ProductImage.bulkCreate(imgs, { transaction: t });
+        }
+      }
+      await t.commit()
+      return product;
+    } catch (error) {
+      await t.rollback();
+      console.log(error);
     }
-    return product;
   }
 
   public async findById(
     id: number,
     appRole: "owner" | "user",
     tenantId: string,
-    branchId?: number
+    branchId?: number,
   ) {
     // Base include
     const include: any[] = [
@@ -125,7 +132,7 @@ export class ProductRepository {
       // Owner sees total inventory across branches
       (p as any).totalInventory = ((p as any).branches || []).reduce(
         (sum: number, b: any) => sum + (b.inventory ?? 0),
-        0
+        0,
       );
     }
 
@@ -138,7 +145,7 @@ export class ProductRepository {
     search: string = "",
     tenantId: string,
     appRole: "owner" | "user",
-    branchId?: number // only for staff/admin viewing a specific branch
+    branchId?: number, // only for staff/admin viewing a specific branch
   ) {
     const searchCondition = buildSearchQuery(["title", "description"], search);
 
@@ -197,12 +204,12 @@ export class ProductRepository {
         // Calculate total inventory across branches for dashboard
         product.totalInventory = (product.branches || []).reduce(
           (sum: number, b: any) => sum + (b.inventory ?? 0),
-          0
+          0,
         );
 
         product.qtySold = (product.branches || []).reduce(
           (sum: number, b: any) => sum + (b.qtySold ?? 0),
-          0
+          0,
         );
       }
 
@@ -260,7 +267,7 @@ export class ProductRepository {
     if (search) {
       Object.assign(
         productWhere,
-        buildSearchQuery(["title", "description"], search)
+        buildSearchQuery(["title", "description"], search),
       );
     }
     if (categoryId !== "ALL") {
@@ -310,7 +317,7 @@ export class ProductRepository {
     if (search) {
       Object.assign(
         mostProducts,
-        buildSearchQuery(["title", "description"], search)
+        buildSearchQuery(["title", "description"], search),
       );
     }
     const mostPurchasedProducts = await Product.findAll({
@@ -330,7 +337,7 @@ export class ProductRepository {
 
     console.log({ mostPurchasedProducts });
     const soldMap = new Map(
-      topProducts.map((p) => [p.productId, (p as any).totalSold])
+      topProducts.map((p) => [p.productId, (p as any).totalSold]),
     );
 
     const enrichedMostPurchased = mostPurchasedProducts.map((p) => ({
@@ -399,8 +406,8 @@ export class ProductRepository {
   public async getInventoryBreakdown(productId: number) {
     return await ProductBranch.findAll({
       where: { productId },
-      include: [{ model: Branch, as: "branch", attributes:["name"] }],
-      attributes: ["inventory"]
+      include: [{ model: Branch, as: "branch", attributes: ["name"] }],
+      attributes: ["inventory"],
     });
   }
 }

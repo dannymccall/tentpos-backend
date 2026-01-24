@@ -11,7 +11,7 @@ class CustomerController {
       const { tenantId, branchId } = (req as any).user;
       const parsed = customerSchema.safeParse(req.body);
 
-      const exists = await Customer.findOne({where: {email: parsed.data?.email}});
+      const exists = await Customer.findOne({where: {email: parsed.data?.email, tenantId, branchId}});
 
       if(exists){
         return next(new AppError("Customer already exists"));

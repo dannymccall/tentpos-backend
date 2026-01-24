@@ -13,67 +13,74 @@ export default class ProductService {
   }
 
   public async createProduct(payload: any) {
-    // Step 1: upload images BEFORE transaction
-    let uploadedImages: string[] = [];
-
-    if (Array.isArray(payload.images) && payload.images.length) {
-      const files = payload.images as Express.Multer.File[];
-
-      uploadedImages = await Promise.all(
-        files.map(async (file) => {
-          const attachment = await processFile(
-            file.path,
-            payload.tenantId,
-            "products",
-            file.originalname
-          );
-          return attachment.url;
-        })
-      );
-    }
-
-    payload.images = uploadedImages;
-    console.log({ payload });
-    // Step 2: NOW start the transaction
-    const t = await sequelize.transaction();
     try {
-      const created = await this.repo.create(payload, t);
-      await t.commit();
-      return created;
+      let uploadedImages: string[] = [];
+
+      if (Array.isArray(payload.images) && payload.images.length) {
+        const files = payload.images as Express.Multer.File[];
+
+        for (const file of files) {
+          const attachment = await processFile({
+            filePath: file.path,
+            tenantId: payload.tenantId,
+            folder: "products",
+            originalName: file.originalname,
+            type: "gallery",
+          });
+          uploadedImages.push(attachment?.url!);
+        }
+      }
+
+      payload.images = uploadedImages;
+
+      console.log("going to repo");
+      const t = await sequelize.transaction();
+      try {
+        const created = await this.repo.create(payload, t);
+        await t.commit();
+        return created;
+      } catch (err) {
+        await t.rollback();
+        throw err;
+      }
     } catch (err) {
-      await t.rollback();
+      console.error("🔥 createProduct failed", err);
       throw err;
     }
   }
 
   public async updateProduct(id: number, payload: any) {
-    const t = await sequelize.transaction();
     try {
       // TODO: image handling / partial patching logic
       const files = payload.images as Express.Multer.File[];
       console.log({ files });
       const uploadedImages: string[] = [];
-      if (files && files.length > 0) {
-        await Promise.all(
-          files.map(async (file) => {
-            // 👇 This could fail if internet is down
-            const attachment = await processFile(
-              file.path,
-              payload.tenantId,
-              "products",
-              file.originalname
-            );
-            uploadedImages.push(attachment.url);
-          })
-        );
+      if (Array.isArray(payload.images) && payload.images.length) {
+        console.log("before processing")
+        for (let i = 0; i < files.length;i++ ) {
+          const file  = files[i];
+          console.log({file})
+          const attachment = await processFile({
+            filePath: file.path,
+            tenantId: payload.tenantId,
+            folder: "products",
+            originalName: file.originalname,
+            type: "gallery",
+          });
+          uploadedImages.push(attachment?.url!);
+        }
       }
+              console.log("after processing")
+
+      console.log("going to repo");
 
       payload.images = uploadedImages;
-      const updated = await this.repo.update(id, payload, t);
-      await t.commit();
+      const updated = await this.repo.update(id, payload);
+
       return updated;
     } catch (err) {
-      await t.rollback();
+      console.error("🔥 createProduct failed", err);
+
       throw err;
     }
   }
@@ -82,7 +89,7 @@ export default class ProductService {
     id: number,
     appRole: "owner" | "user",
     tenantId: string,
-    branchId?: number
+    branchId?: number,
   ) {
     return this.repo.findById(id, appRole, tenantId, branchId);
   }
@@ -93,7 +100,7 @@ export default class ProductService {
     search: string = "",
     tenantId: string,
     appRole: "owner" | "user",
-    branchId?: number // only for staff/admin viewing a specific branch
+    branchId?: number, // only for staff/admin viewing a specific branch
   ) {
     return this.repo.findAll(page, limit, search, tenantId, appRole, branchId);
   }
@@ -110,8 +117,11 @@ export default class ProductService {
     id: number,
     quantity: number,
     branchId: number,
-    tenantId: string
+    tenantId: string,
   ) {
+    if (!branchId) {
+      return;
+    }
     let branchProduct = await ProductBranch.findOne({
       where: { productId: id, branchId },
     });
@@ -178,7 +188,7 @@ export default class ProductService {
     });
   }
 
-  public async getInventoryBreakdown (productId: number){
-    return await this.repo.getInventoryBreakdown(productId)
+  public async getInventoryBreakdown(productId: number) {
+    return await this.repo.getInventoryBreakdown(productId);
   }
 }

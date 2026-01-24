@@ -37,7 +37,7 @@ export class UserService {
     return await this.userRepo.getUserBusinessProfile(email, appRole, tenantId);
   };
 
-  public getStaffDetails = async (staffid: number) => {
-    return await this.userRepo.getStaffDetails(staffid);
+  public getUserDetails = async (staffid: number, tenantId: string) => {
+    return await this.userRepo.getUserDetails(staffid, tenantId);
   };
 }

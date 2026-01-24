@@ -11,7 +11,7 @@ class SaleController {
       console.log(req.body);
       const { tenantId, branchId, userId } = (req as any).user;
       const parsed = saleSchema.safeParse(req.body);
-
+      console.log(parsed.data)
       if (!parsed.success) {
         console.log(parsed.error.flatten());
         return next(new AppError("Invalid sales details"));
@@ -49,7 +49,8 @@ class SaleController {
       const limit = Number(req.query.limit);
       const search = String(req.query.searchTerm || "");
       const status = String(req.query.status || "");
-      const sales = await saleService.list(page, limit, search, where, status);
+      const customerId = Number(req.query.customerId)
+      const sales = await saleService.list(page, limit, search, where, status, customerId);
       return sendSuccess(res, "", sales, 200);
     } catch (err) {
       next(err);

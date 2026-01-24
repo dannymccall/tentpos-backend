@@ -3,6 +3,7 @@ import { CategoryController } from "../controllers/CategoryController.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
 import { RequirePermission } from "../middlewares/Requirepermission.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 export class CategoryRoutes {
   public router: Router;
   private controller: CategoryController;
@@ -31,12 +32,16 @@ export class CategoryRoutes {
       "/add-category",
       requireAuth,
       RequirePermission("inventory.categories.create"),
+      requireActiveSubscription(),
+
       this.controller.addCategory.bind(this.controller)
     );
     this.router.post(
       "/bulk-upload",
       requireAuth,
       RequirePermission("inventory.categories.create"),
+      requireActiveSubscription(),
+
       this.controller.bulkUploadCategory.bind(this.controller)
     );
 
@@ -44,6 +49,8 @@ export class CategoryRoutes {
       "/update-category",
       requireAuth,
       RequirePermission("inventory.categories.update"),
+      requireActiveSubscription(),
+
       this.controller.updateCategory.bind(this.controller)
     );
 
@@ -51,6 +58,7 @@ export class CategoryRoutes {
       "/delete-category",
       requireAuth,
       RequirePermission("inventory.categories.delete"),
+      requireActiveSubscription(),
       this.controller.deleteCategory.bind(this.controller)
     );
   }

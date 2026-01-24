@@ -298,6 +298,14 @@ class DashboardService {
       },
     };
   }
+
+  public  getCounts = async (baseWhere: any = {}) => {
+    const debtors = await Debtor.count({
+      where: { ...baseWhere},
+    });
+
+    return { debtors };
+  };
 }
 
 export default new DashboardService();

@@ -50,9 +50,13 @@ class SaleRepository {
     limit: number = 10,
     search: string = "",
     baseWhere: any = {},
-    status?: string
+    status?: string,
+    customerId?: number,
   ) {
-    const searchCondition = buildSearchQuery(["saleNumber"], search);
+    const searchCondition = buildSearchQuery(
+      ["saleNumber", "customer.firstName", "customer.lastName"],
+      search,
+    );
 
     const where = {
       ...baseWhere,
@@ -61,17 +65,21 @@ class SaleRepository {
     if (status) {
       where.status = status;
     }
+
+    if (customerId && !isNaN(customerId)) {
+      where.customerId = customerId;
+    }
     // If no pagination, return all
     if (!limit && !page) {
       return await Sale.findAll({
         where,
         include: [
+          { model: Customer, as: "customer" },
           {
             model: SaleItem,
             as: "saleItems",
             include: [{ model: Product, as: "product", attributes: ["title"] }],
           },
-          { model: Customer, as: "customer" },
           { model: Branch, as: "branchSale" },
         ],
         order: [["createdAt", "DESC"]],
@@ -137,7 +145,7 @@ class SaleRepository {
     return invoice;
   }
   public async recordPayment(payment: Payment, transaction: Transaction) {
-    const invoice = await Invoice.create(payment as any, { transaction });
+    const invoice = await Payment.create(payment as any, { transaction });
     return invoice;
   }
 
@@ -145,7 +153,7 @@ class SaleRepository {
     page: number = 1,
     limit: number = 10,
     search: string = "",
-    baseWhere: any = {}
+    baseWhere: any = {},
   ) {
     const searchCondition = buildSearchQuery(["invoiceNumber"], search);
     const where = {
@@ -154,7 +162,7 @@ class SaleRepository {
     };
     const offset = (page - 1) * limit;
 
-    return await Invoice.findAndCountAll({
+    const { rows, count } = await Invoice.findAndCountAll({
       where,
       include: [
         {
@@ -163,7 +171,11 @@ class SaleRepository {
           include: [
             { model: Customer, as: "customer" },
             { model: User, as: "userSale", attributes: ["id", "fullName"] },
-            {model: SaleItem, as: "saleItems", include: [{model: Product, as: "product"}]}
+            {
+              model: SaleItem,
+              as: "saleItems",
+              include: [{ model: Product, as: "product" }],
+            },
           ],
         },
         { model: Branch, as: "branchInvoice" },
@@ -172,13 +184,20 @@ class SaleRepository {
       offset,
       order: [["createdAt", "DESC"]],
     });
+
+    return {
+      rows,
+      total: count,
+      page,
+      totalPages: Math.ceil(count / limit),
+    };
   }
 
   public async getSaleReturns(
     page: number = 1,
     limit: number = 10,
     search: string = "",
-    baseWhere: any = {}
+    baseWhere: any = {},
   ) {
     const searchCondition = buildSearchQuery(["invoiceNumber"], search);
     const where = {

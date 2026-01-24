@@ -2,6 +2,7 @@ import { ReportController } from "../controllers/ReportController.js";
 import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { RequirePermission } from "../middlewares/Requirepermission.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 export class ReportRoutes {
   private controller: ReportController;
@@ -18,13 +19,25 @@ export class ReportRoutes {
       "/sales",
       requireAuth,
       RequirePermission(""),
-      this.controller.getSalesReport.bind(this.controller)
+      requireActiveSubscription(),
+
+      this.controller.getSalesReport.bind(this.controller),
     );
     this.router.post(
       "/inventory",
       requireAuth,
       RequirePermission(""),
-      this.controller.getInventoryReport.bind(this.controller)
+      requireActiveSubscription(),
+
+      this.controller.getInventoryReport.bind(this.controller),
+    );
+    this.router.post(
+      "/purchases",
+      requireAuth,
+      RequirePermission(""),
+      requireActiveSubscription(),
+
+      this.controller.getPurchasesReport.bind(this.controller),
     );
   }
 }

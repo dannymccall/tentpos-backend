@@ -16,8 +16,8 @@ export default class Debtor extends Model<
   declare id: CreationOptional<number>;
   declare customerId: number;
   declare totalOwed: number;
-  declare oldestDebtDate: Date;
-  declare lastSaleDate: Date;
+  declare oldestDebtDate: Date | null;
+  declare lastSaleDate: Date | null;
   declare status: "ACTIVE" | "CLEARED" | "BLOCKED";
   declare tenantId: string;
   declare branchId: ForeignKey<Branch["id"]>;

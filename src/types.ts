@@ -86,3 +86,9 @@ export interface AccountingFilters {
   tenantId?:string
 }
 
+
+export interface PurchasesReportFilters{
+  startDate?:string;
+  endDate?: string;
+  tenantId: string
+}

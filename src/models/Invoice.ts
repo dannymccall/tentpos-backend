@@ -32,7 +32,7 @@ export function initInvoiceModel(sequelize: Sequelize) {
         primaryKey: true,
       },
       invoiceNumber: { type: DataTypes.STRING, unique: true },
-      saleId: { type: DataTypes.INTEGER.UNSIGNED },
+      saleId: { type: DataTypes.INTEGER.UNSIGNED, unique:true },
       customerId: { type: DataTypes.INTEGER, allowNull: true },
       amountDue: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
       status: { type: DataTypes.STRING, defaultValue: "PENDING" },

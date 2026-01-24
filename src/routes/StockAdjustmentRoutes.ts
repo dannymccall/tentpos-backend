@@ -3,6 +3,7 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { RequirePermission } from "../middlewares/Requirepermission.js";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 export class StockAdjustmentRoutes {
   public router: Router;
@@ -18,6 +19,8 @@ export class StockAdjustmentRoutes {
       "/adjust",
       requireAuth,
       RequirePermission(""),
+            requireActiveSubscription(),
+      
       this.controller.adjustStock.bind(this.controller)
     );
     this.router.get(

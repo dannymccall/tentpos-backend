@@ -3,6 +3,7 @@ import saleController from "../controllers/SaleController.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { RequirePermission } from "../middlewares/Requirepermission.js";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 export class SaleRoutes {
   private controller: typeof saleController;
@@ -18,6 +19,7 @@ export class SaleRoutes {
       "/",
       requireAuth,
       RequirePermission("sales.create"),
+      requireActiveSubscription(),
       this.controller.create.bind(this.controller)
     );
     this.router.get(
@@ -25,18 +27,22 @@ export class SaleRoutes {
       requireAuth,
       RequirePermission("sales.view"),
       roleDataScopeMiddleware,
+
       this.controller.list.bind(this.controller)
     );
     this.router.get(
       "/get",
       requireAuth,
       RequirePermission("sales.view"),
+
       this.controller.get.bind(this.controller)
     );
     this.router.put(
       "/cancel",
       requireAuth,
       RequirePermission("sales.cancel"),
+      requireActiveSubscription(),
+
       this.controller.cancel.bind(this.controller)
     );
     this.router.get(
@@ -58,14 +64,17 @@ export class SaleRoutes {
       "/return",
       requireAuth,
       RequirePermission("sales.view"),
+      requireActiveSubscription(),
+
       this.controller.processReturnSale.bind(this.controller)
     );
     this.router.post(
       "/complete-hold-sale",
       requireAuth,
       RequirePermission("sales.view"),
-      this.controller.completeHoldSale
-      .bind(this.controller)
+      requireActiveSubscription(),
+
+      this.controller.completeHoldSale.bind(this.controller)
     );
   }
 }

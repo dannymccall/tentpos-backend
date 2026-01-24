@@ -178,7 +178,7 @@ Product.hasMany(SaleItem, { foreignKey: "productId", as: "productSaleItems" });
 SaleItem.belongsTo(Product, { foreignKey: "productId", as: "product" });
 
 Sale.hasMany(Payment, { foreignKey: "saleId", as: "payments" });
-Payment.belongsTo(Sale, { foreignKey: "saleId", as: "salePayments" });
+Payment.belongsTo(Sale, { foreignKey: "saleId", as: "salePayment" });
 
 Customer.hasOne(Debtor, { foreignKey: "customerId", as: "debtorInfo" });
 Debtor.belongsTo(Customer, { foreignKey: "customerId", as: "customerDebtor" });
@@ -189,6 +189,8 @@ Debtor.belongsTo(Branch, { foreignKey: "branchId", as: "branchDebtor" });
 Branch.hasMany(Payment, { foreignKey: "branchId", as: "branchPayments" });
 Payment.belongsTo(Branch, { foreignKey: "branchId", as: "branchPayment" });
 
+Customer.hasMany(Payment, {foreignKey: "customerId", as:"customerPayments"});
+Payment.belongsTo(Customer, {foreignKey: "customerId", as:"customerPayment"})
 User.hasMany(Payment, { foreignKey: "userId", as: "userPayments" });
 Payment.belongsTo(User, { foreignKey: "userId", as: "userPayment" });
 

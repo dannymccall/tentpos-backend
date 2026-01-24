@@ -31,7 +31,7 @@ export function initBranch(sequelize: Sequelize) {
     {
       id: { type: DataTypes.INTEGER.UNSIGNED, autoIncrement: true, primaryKey: true },
       name: { type: DataTypes.STRING(100), allowNull: false },
-      code: { type: DataTypes.STRING(20), unique: true },
+      code: { type: DataTypes.STRING(20), },
       address: { type: DataTypes.STRING(255) },
       city: { type: DataTypes.STRING(100) },
       region: { type: DataTypes.STRING(100) },
@@ -47,6 +47,21 @@ export function initBranch(sequelize: Sequelize) {
       modelName: "Branch",
       tableName: "branches",
       timestamps: true,
+     indexes: [
+        // 🔒 enforce tenant-scoped branch codes
+        {
+          unique: true,
+          fields: ["tenantId", "code"],
+          name: "branches_tenant_code_unique",
+        },
+
+        // 🔑 baseline tenant queries
+        { fields: ["tenantId"] },
+
+
+        // 🌆 optional city filtering
+        { fields: ["tenantId", "city"] },
+      ],
     }
   );
 }

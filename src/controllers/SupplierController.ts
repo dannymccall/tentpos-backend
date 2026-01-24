@@ -8,7 +8,8 @@ export class SupplierController {
   public async create(req: Request, res: Response, next: NextFunction) {
     try {
       const payload = createSchema.parse(req.body);
-      const created = await SupplierService.create(payload);
+      const tenantId = (req as any).user.tenantId;
+      const created = await SupplierService.create({...payload, tenantId});
       return sendSuccess(res, "Supplier created successfully", created, 201);
     } catch (err: any) {
       next(err);

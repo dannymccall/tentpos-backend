@@ -4,8 +4,9 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import { RequirePermission } from "../middlewares/Requirepermission.js";
 import multer from "multer";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
-const uploaded = multer({ dest: "uploads/loan-attachments" });
+const uploaded = multer({ dest: "uploads/products" });
 
 export class ProductRoutes {
   private controller: ProductController;
@@ -23,6 +24,8 @@ export class ProductRoutes {
       requireAuth,
       RequirePermission("inventory.products.create"),
       uploaded.array("images", 5),
+            requireActiveSubscription(),
+      
       this.controller.create.bind(this.controller)
     );
     this.router.put(
@@ -30,6 +33,8 @@ export class ProductRoutes {
       requireAuth,
       RequirePermission("inventory.products.update"),
       uploaded.array("images", 5),
+            requireActiveSubscription(),
+
       this.controller.update.bind(this.controller)
     );
     this.router.get(
@@ -37,6 +42,7 @@ export class ProductRoutes {
       requireAuth,
       RequirePermission("inventory.products.view"),
       roleDataScopeMiddleware,
+
       this.controller.list.bind(this.controller)
     );
 
@@ -51,12 +57,16 @@ export class ProductRoutes {
       "/delete-product",
       requireAuth,
       RequirePermission("inventory.products.delete"),
+            requireActiveSubscription(),
+
       this.controller.remove.bind(this.controller)
     );
     this.router.post(
       "/bulk-upload",
       requireAuth,
       RequirePermission("inventory.products.create"),
+            requireActiveSubscription(),
+
       this.controller.bulkUpload.bind(this.controller)
     );
 

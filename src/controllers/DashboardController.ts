@@ -31,4 +31,16 @@ export class DashboardController {
         console.log(error)
     }
   }
+
+    public getCounts = async (req: Request, res: Response, next: NextFunction) => {
+    try{
+       const baseWhere = {};
+      const where = (req as any).applyDataScope("customers", baseWhere);
+      const count = await dashboardService.getCounts(where);
+
+      return sendSuccess(res, "", count, 200)
+    }catch(error){
+      next(error)
+    }
+  }
 }

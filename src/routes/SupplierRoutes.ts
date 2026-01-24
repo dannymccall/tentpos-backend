@@ -4,6 +4,7 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { RequirePermission } from "../middlewares/Requirepermission.js";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 export class SupplierRoutes {
   private controller: SupplierController;
@@ -21,6 +22,8 @@ export class SupplierRoutes {
       "/",
       requireAuth,
       RequirePermission("suppliers.create"),
+      requireActiveSubscription(),
+
       this.controller.create.bind(this.controller)
     );
     this.router.get(
@@ -40,19 +43,25 @@ export class SupplierRoutes {
       "/update",
       requireAuth,
       RequirePermission("suppliers.update"),
+      requireActiveSubscription(),
+
       this.controller.update.bind(this.controller)
     );
     this.router.delete(
       "/delete",
       requireAuth,
       RequirePermission("suppliers.delete"),
+      requireActiveSubscription(),
+
       this.controller.remove.bind(this.controller)
     );
 
-     this.router.post(
+    this.router.post(
       "/bulk-upload",
       requireAuth,
       RequirePermission("suppliers.create"),
+      requireActiveSubscription(),
+
       this.controller.bulkUpload.bind(this.controller)
     );
   }

@@ -26,5 +26,11 @@ export class DashboardRoutes {
       roleDataScopeMiddleware,
       this.controller.getDailySummary.bind(this.controller)
     );
+    this.router.get(
+      "/counts",
+      requireAuth,
+      roleDataScopeMiddleware,
+      this.controller.getCounts.bind(this.controller)
+    );
   }
 }

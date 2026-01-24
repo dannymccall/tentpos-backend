@@ -3,7 +3,7 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { roleDataScopeMiddleware } from "../middlewares/roleDataScopeMiddleware.js";
 import { verifyTentHubToken } from "../middlewares/verifyTentHubtoken.js";
-
+import { requireActiveSubscription } from "../middlewares/requireActiveSubscription.js";
 
 export class UserRoutes {
   private controller: UserController;
@@ -25,6 +25,8 @@ export class UserRoutes {
     this.router.put(
       "/update-user",
       requireAuth,
+      requireActiveSubscription(),
+
       this.controller.updateUser.bind(this.controller)
     );
     this.router.post(
@@ -34,7 +36,7 @@ export class UserRoutes {
     );
 
     this.router.get(
-      "/staff-details",
+      "/user",
       requireAuth,
       this.controller.getStaffDetails.bind(this.controller)
     );
